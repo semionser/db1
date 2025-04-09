@@ -8,12 +8,10 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-
-# Строка подключения к базе данных
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
 db = SQLAlchemy(app)
 
@@ -23,11 +21,13 @@ limiter = Limiter(get_remote_address, app=app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Модель пользователя
+
+# Модель пользователя для авторизации
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
+
 
 # Модель товара
 class Product(db.Model):
@@ -36,26 +36,31 @@ class Product(db.Model):
     quantity = db.Column(db.Integer, default=0)
     image = db.Column(db.String(100), nullable=True)
 
+
 # Загрузка пользователя по ID
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Создание администратора, если его нет
+
+# Создание пользователя 'admin' с паролем
 def create_admin_user():
     user = User.query.filter_by(username='admin').first()
     if not user:
+        # Хешируем пароль перед сохранением в базе данных
         hashed_password = generate_password_hash('adminpassword')
         new_user = User(username='admin', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
-# Главная страница
+
+# Главная страница (с доступом только для авторизованных пользователей)
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     products = Product.query.all()
     return render_template('index.html', products=products)
+
 
 # Обновление количества
 @app.route('/update/<int:product_id>', methods=['POST'])
@@ -68,6 +73,7 @@ def update_quantity(product_id):
         db.session.commit()
     return redirect(url_for('index'))
 
+
 # Удаление товара
 @app.route('/delete/<int:product_id>', methods=['POST'])
 @login_required
@@ -76,6 +82,7 @@ def delete_product(product_id):
     db.session.delete(product)
     db.session.commit()
     return redirect(url_for('index'))
+
 
 # Добавление товара
 @app.route('/add', methods=['GET', 'POST'])
@@ -99,6 +106,7 @@ def add_product():
 
     return render_template('add_product.html')
 
+
 # Вход в систему
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")  # Ограничение на 5 запросов в минуту
@@ -115,23 +123,18 @@ def login():
         else:
             flash('Неверный логин или пароль', 'danger')
 
-    return render_template('login.html')
-
-# Выход из системы
+    return render_template('login.html')# Выход из системы
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    # Создаем директорию для загрузки изображений
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # Создаем все таблицы в базе данных
+# Инициализация базы данных и создание администратора
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
         db.create_all()
-        create_admin_user()
-
-    # Запуск приложения
+        create_admin_user()  # Создаем администратора при старте приложения
     app.run(host='0.0.0.0', port=5000)
