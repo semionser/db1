@@ -133,9 +133,20 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
+# Обработчики ошибок
+@app.errorhandler(404)
+def not_found_error(error):
+    return "404 Not Found", 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return "500 Internal Server Error", 500
+
+
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
         db.create_all()
         create_admin_user()  # Создаем администратора при старте приложения
-    app.run( host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
