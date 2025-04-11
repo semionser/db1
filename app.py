@@ -6,36 +6,32 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from dotenv import load_dotenv
-
-# Загружаем переменные окружения из файла .env
-load_dotenv()
+from flask_migrate import Migrate  # Добавлено для миграций
 
 app = Flask(__name__)
-
-# Получаем строку подключения из переменных окружения
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Используем DATABASE_URL из .env
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Используем переменную окружения для URL базы данных
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SECRET_KEY'] = 'ufeP15ooKo1Eo2r0zqG4oq7ca6bSEMjO'  # Пример
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Секретный ключ из переменной окружения
 
-# Инициализация базы данных
 db = SQLAlchemy(app)
 
 # Настройка ограничений
 limiter = Limiter(get_remote_address, app=app)
 
-# Инициализация Flask-Login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Миграции
+migrate = Migrate(app, db)
 
 # Модель пользователя для авторизации
 class User(UserMixin, db.Model):
+    tablename = 'users'  # Переименовали таблицу на 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
-
 
 # Модель товара
 class Product(db.Model):
@@ -44,12 +40,10 @@ class Product(db.Model):
     quantity = db.Column(db.Integer, default=0)
     image = db.Column(db.String(100), nullable=True)
 
-
 # Загрузка пользователя по ID
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 # Создание пользователя 'admin' с паролем
 def create_admin_user():
@@ -61,14 +55,12 @@ def create_admin_user():
         db.session.add(new_user)
         db.session.commit()
 
-
 # Главная страница (с доступом только для авторизованных пользователей)
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     products = Product.query.all()
     return render_template('index.html', products=products)
-
 
 # Обновление количества
 @app.route('/update/<int:product_id>', methods=['POST'])
@@ -81,7 +73,6 @@ def update_quantity(product_id):
         db.session.commit()
     return redirect(url_for('index'))
 
-
 # Удаление товара
 @app.route('/delete/<int:product_id>', methods=['POST'])
 @login_required
@@ -90,7 +81,6 @@ def delete_product(product_id):
     db.session.delete(product)
     db.session.commit()
     return redirect(url_for('index'))
-
 
 # Добавление товара
 @app.route('/add', methods=['GET', 'POST'])
@@ -114,7 +104,6 @@ def add_product():
 
     return render_template('add_product.html')
 
-
 # Вход в систему
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")  # Ограничение на 5 запросов в минуту
@@ -124,13 +113,14 @@ def login():
         password = request.form['password']
 
         user = User.query.filter_by(username=username).first()
+
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('index'))
         else:
             flash('Неверный логин или пароль', 'danger')
-    return render_template('login.html')
 
+    return render_template('login.html')
 
 # Выход из системы
 @app.route('/logout')
@@ -139,11 +129,10 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 # Инициализация базы данных и создание администратора
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
-        db.create_all()  # Создаем все таблицы в базе данных
+        db.create_all()  # Создаем все таблицы
         create_admin_user()  # Создаем администратора при старте приложения
     app.run(host='0.0.0.0', port=5000)
