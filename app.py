@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Используем DATABASE_URL из .env
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
+app.config['SECRET_KEY'] = 'ufeP15ooKo1Eo2r0zqG4oq7ca6bSEMjO'  # Пример
 
 # Инициализация базы данных
 db = SQLAlchemy(app)
