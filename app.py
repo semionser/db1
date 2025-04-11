@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -7,18 +6,26 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из файла .env
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
+
+# Получаем строку подключения из переменных окружения
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Используем DATABASE_URL из .env
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
+# Инициализация базы данных
 db = SQLAlchemy(app)
 
 # Настройка ограничений
 limiter = Limiter(get_remote_address, app=app)
 
+# Инициализация Flask-Login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -117,14 +124,15 @@ def login():
         password = request.form['password']
 
         user = User.query.filter_by(username=username).first()
-
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('index'))
         else:
             flash('Неверный логин или пароль', 'danger')
+    return render_template('login.html')
 
-    return render_template('login.html')# Выход из системы
+
+# Выход из системы
 @app.route('/logout')
 @login_required
 def logout():
@@ -136,6 +144,6 @@ def logout():
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
-        db.create_all()
+        db.create_all()  # Создаем все таблицы в базе данных
         create_admin_user()  # Создаем администратора при старте приложения
     app.run(host='0.0.0.0', port=5000)
