@@ -107,6 +107,8 @@ def add_product():
 # Вход в систему
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None  # Изначально ошибки нет
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -117,9 +119,9 @@ def login():
             login_user(user)
             return redirect(url_for('index'))
         else:
-            flash('Неверный логин или пароль', 'danger')
+            error = 'Неверный логин или пароль'
 
-    return render_template('login.html')
+    return render_template('login.html', error=error)
 
 
 # Выход из системы
