@@ -55,7 +55,7 @@ def create_admin_user():
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    products = Product.query.all()
+    products = Product.query.all()  # Получаем все товары
     return render_template('index.html', products=products)
 
 
@@ -129,6 +129,12 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
+# Страница аналитики
+@app.route('/analytics')
+@login_required
+def analytics():
+    return render_template('analytics.html')  # Страница аналитики
 
 # Инициализация базы данных и создание администратора
 if __name__ == '__main__':
