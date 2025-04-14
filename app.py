@@ -42,10 +42,10 @@ def load_user(user_id):
 
 # Создание пользователя 'admin' с паролем
 def create_admin_user():
-    user = User.query.filter_by(username='admin').first()
+    user = User.query.filter_by(username='adm').first()
     if not user:
         # Хешируем пароль перед сохранением в базе данных
-        hashed_password = generate_password_hash('adminpassword')
+        hashed_password = generate_password_hash('123')
         new_user = User(username='admin', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
