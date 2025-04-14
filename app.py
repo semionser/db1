@@ -10,7 +10,7 @@ app = Flask(__name__)
 # Настройка SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
 db = SQLAlchemy(app)
@@ -127,10 +127,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
-
-
-# Страница аналитики
+    return redirect(url_for('login')) # Страница аналитики
 @app.route('/analytics')
 @login_required
 def analytics():
