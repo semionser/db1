@@ -2,40 +2,113 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Склад товаров</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        .product-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .product-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .product-quantity {
+            font-weight: bold;
+            color: black;
+            font-size: 1.2rem;
+        }
+        .product-ozone {
+            color: black;
+            font-size: 1rem;
+        }
+        .btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* Адаптивность для разных размеров экранов */
+        @media (max-width: 768px) {
+            .product-card {
+                padding: 10px;
+                text-align: center;
+            }
+            .product-name {
+                font-size: 1rem;
+            }
+            .product-quantity,
+            .product-ozone {
+                font-size: 1rem;
+            }
+            .col-md-4 {
+                width: 50%;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .col-md-4 {
+                width: 33.33%;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container py-4">
-    <h1 class="mb-4">Склад товаров</h1>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Товары на складе</h1>
 
-    <a href="/logout" class="btn btn-danger mb-4 float-end">Выйти</a>
-
-    <a href="/add" class="btn btn-primary mb-4">+ Добавить товар</a>
-
-    <a href="/analytics" class="btn btn-success mb-4">Аналитика</a> <!-- Добавлена кнопка для перехода к аналитике -->
-
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        {% for product in products %}
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                {% if product.image %}
-                <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="card-img-top" alt="{{ product.name }}">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ product.name }}</h5>
-                    <form action="{{ url_for('update_quantity', product_id=product.id) }}" method="POST" class="d-flex align-items-center gap-2 mb-2">
-                        <input type="number" name="quantity" value="{{ product.quantity }}" class="form-control" style="width: 100px;">
-                        <button type="submit" class="btn btn-outline-primary">Обновить</button>
-                    </form>
-                    <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST" onsubmit="return confirm('Удалить товар «{{ product.name }}»?');">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
-                    </form>
-                </div>
-            </div>
+        <!-- Кнопки под заголовком -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('add_product') }}" class="btn btn-primary">Добавить товар</a>
+            <a href="{{ url_for('analytics') }}" class="btn btn-success">Аналитика</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Выйти</a>
         </div>
-        {% endfor %}
+
+        <div class="row">
+            {% for product in products %}
+                <div class="col-md-4 col-sm-6 col-xs-12">
+                    <div class="product-card">
+                        <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="product-image" alt="{{ product.name }}">
+                        <h4 class="product-name">{{ product.name }}</h4>
+                        <p class="product-quantity">Количество: <strong>{{ product.quantity }}</strong></p>
+                        <p class="product-ozone">Количество на Ozone: <span>???</span></p>
+
+                        <!-- Форма для изменения количества товара -->
+                        <form action="{{ url_for('update_quantity', product_id=product.id) }}" method="POST">
+                            <div class="form-group">
+                                <label for="quantity">Новое количество:</label>
+                                <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" min="0" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Обновить количество</button>
+                        </form>
+
+                        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-danger">Удалить товар</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     </div>
-</div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
