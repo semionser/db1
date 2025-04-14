@@ -46,7 +46,7 @@ def create_admin_user():
     if not user:
         # Хешируем пароль перед сохранением в базе данных
         hashed_password = generate_password_hash('12')
-        new_user = User(username='admin', password=hashed_password)
+        new_user = User(username='adm', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
