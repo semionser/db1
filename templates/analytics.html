@@ -19,6 +19,21 @@
         .btn {
             width: 100%;
         }
+
+        .info-title {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .divider {
+            border-top: 1px solid #ccc;
+            margin: 25px 0;
+        }
     </style>
 </head>
 <body>
@@ -26,8 +41,18 @@
     <h1 class="mb-4 text-center">Аналитика склада</h1>
 
     <div class="card p-4 shadow-sm">
-        <h3>Общее количество товаров: {{ total_quantity }}</h3>
-        <h3>Добавлено товаров: {{ added_quantity }}</h3>
+        <p class="info-title">Общее количество товара (в штуках):</p>
+        <p class="info-value">{{ total_goods_quantity }}</p>
+
+        <div class="divider"></div>
+
+        <p class="info-title">Добавлено товаров (по позициям):</p>
+        <p class="info-value">{{ added_goods_count }}</p>
+
+        <div class="divider"></div>
+
+        <p class="info-title">Добавлено канцелярии (по позициям):</p>
+        <p class="info-value">{{ added_stationery_count }}</p>
     </div>
 
     <div class="card mt-4 p-4 shadow-sm">

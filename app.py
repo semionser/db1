@@ -137,9 +137,20 @@ def logout():
 @login_required
 def analytics():
     products = Product.query.all()
-    total_quantity = sum(product.quantity for product in products)
-    added_quantity = len(products)
-    return render_template('analytics.html', total_quantity=total_quantity, added_quantity=added_quantity)
+
+    # Суммарное количество штук только по категории "товар"
+    total_goods_quantity = sum(p.quantity for p in products if p.category == 'товар')
+
+    # Количество позиций с категорией "товар" (не штук)
+    added_goods_count = sum(1 for p in products if p.category == 'товар')
+
+    # Количество позиций с категорией "канцелярия"
+    added_stationery_count = sum(1 for p in products if p.category == 'канцелярия')
+
+    return render_template('analytics.html',
+                           total_goods_quantity=total_goods_quantity,
+                           added_goods_count=added_goods_count,
+                           added_stationery_count=added_stationery_count)
 
 
 # Скачивание данных в Excel
@@ -147,11 +158,36 @@ def analytics():
 @login_required
 def download_excel():
     products = Product.query.all()
-    df = pd.DataFrame([(product.name, product.quantity) for product in products], columns=['Название', 'Количество'])
+
+    # Разделяем по категориям
+    goods = [p for p in products if p.category == 'товар']
+    stationery = [p for p in products if p.category == 'канцелярия']
+
+    # Формируем строки таблицы с заголовками
+    rows = []
+
+    if goods:
+        rows.append(['Товары'])  # Заголовок секции
+        rows.append(['Название', 'Количество'])
+        for p in goods:
+            rows.append([p.name, p.quantity])
+
+    if stationery:
+        rows.append([])  # Пустая строка между секциями
+        rows.append(['Канцелярия'])
+        rows.append(['Название', 'Количество'])
+        for p in stationery:
+            rows.append([p.name, p.quantity])
+
+    # Создаем DataFrame без заголовков, чтобы сохранить кастомную структуру
+    df = pd.DataFrame(rows)
+
+    # Сохраняем в Excel
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
+        df.to_excel(writer, index=False, header=False, sheet_name='Склад')
     output.seek(0)
+
     return send_file(output, as_attachment=True, download_name="products.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
