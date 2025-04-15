@@ -2,10 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="{{ url_for('static', filename='kit.ico') }}" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Склад товаров</title>
+    <link rel="icon" href="{{ url_for('static', filename='kit.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,12 +18,51 @@
         }
 
         .top-buttons {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         .top-buttons .btn {
             margin: 5px;
-            min-width: 120px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add {
+            background-color: #5C6BC0;  /* Приглушённый синий */
+            color: white;
+            border: none;
+        }
+
+        .btn-add:hover {
+            background-color: #4F5B8B;
+        }
+
+        .btn-analytics {
+            background-color: #8E8E8E;  /* Серо-зелёный */
+            color: white;
+            border: none;
+        }
+
+        .btn-analytics:hover {
+            background-color: #7E7E7E;
+        }
+
+        .btn-logout {
+            background-color: #E57373;  /* Мягкий красный */
+            color: white;
+            border: none;
+        }
+
+        .btn-logout:hover {
+            background-color: #EF5350;
+        }
+
+        .divider {
+            border-top: 1px solid #ccc;  /* Тонкая серая линия */
+            margin: 30px 0;
         }
 
         .product-card {
@@ -83,10 +123,19 @@
         <h1 class="text-center mb-3">Товары на складе</h1>
 
         <div class="text-center top-buttons">
-            <a href="{{ url_for('add_product') }}" class="btn btn-primary">Добавить товар</a>
-            <a href="{{ url_for('analytics') }}" class="btn btn-success">Аналитика</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-danger">Выйти</a>
+            <a href="{{ url_for('add_product') }}" class="btn btn-add">
+                <i class="fas fa-plus-circle"></i> Добавить товар
+            </a>
+            <a href="{{ url_for('analytics') }}" class="btn btn-analytics">
+                <i class="fas fa-chart-line"></i> Аналитика
+            </a>
+            <a href="{{ url_for('logout') }}" class="btn btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Выйти
+            </a>
         </div>
+
+        <!-- Разделительная линия -->
+        <div class="divider"></div>
 
         <div class="row d-flex flex-wrap">
             {% for product in products %}
@@ -94,8 +143,7 @@
                     <div class="product-card w-100">
                         <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="product-image" alt="{{ product.name }}">
                         <h4 class="product-name">{{ product.name }}</h4>
-                        <p class="product-quantity">Количество: {{ product.quantity }}</p>
-                        <p class="product-ozon">Количество на Ozone: ???</p>
+                        <p class="product-quantity">Количество: {{ product.quantity }}</p><p class="product-ozon">Количество на Ozone: ???</p>
 
                         <!-- Форма для изменения количества товара -->
                         <form action="{{ url_for('update_quantity', product_id=product.id) }}" method="POST">
