@@ -10,7 +10,6 @@ from io import BytesIO
 app = Flask(__name__)
 
 # Настройка SQLite
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
@@ -34,6 +33,7 @@ class Product(db.Model):
     name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, default=0)
     image = db.Column(db.String(100), nullable=True)
+    category = db.Column(db.String(100), nullable=False, default='Товар')  # Категория товара
 
 
 # Загрузка пользователя по ID
@@ -46,7 +46,7 @@ def load_user(user_id):
 def create_admin_user():
     user = User.query.filter_by(username='adm').first()
     if not user:
-        hashed_password = generate_password_hash('112233')
+        hashed_password = generate_password_hash('1234')
         new_user = User(username='adm', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
@@ -89,6 +89,7 @@ def add_product():
     if request.method == 'POST':
         name = request.form['name']
         quantity = int(request.form['quantity'])
+        category = request.form['category']  # Получаем категорию
         image_file = request.files['image']
 
         filename = None
@@ -97,7 +98,7 @@ def add_product():
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             image_file.save(image_path)
 
-        new_product = Product(name=name, quantity=quantity, image=filename)
+        new_product = Product(name=name, quantity=quantity, category=category, image=filename)
         db.session.add(new_product)
         db.session.commit()
         return redirect(url_for('index'))
@@ -151,7 +152,8 @@ def download_excel():
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
     output.seek(0)
-    return send_file(output, as_attachment=True, download_name="products.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(output, as_attachment=True, download_name="products.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 # Инициализация базы данных и создание администратора
