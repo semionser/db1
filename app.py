@@ -46,7 +46,7 @@ def load_user(user_id):
 def create_admin_user():
     user = User.query.filter_by(username='adm').first()
     if not user:
-        hashed_password = generate_password_hash('1234')
+        hashed_password = generate_password_hash('112233')
         new_user = User(username='adm', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
