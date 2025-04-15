@@ -1,25 +1,27 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+import pandas as pd
+from io import BytesIO
 
 app = Flask(__name__)
 
 # Настройка SQLite
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
 db = SQLAlchemy(app)
-
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 
-# Модель пользователя для авторизации
+# Модель пользователя
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -40,22 +42,21 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Создание пользователя 'admin' с паролем
+# Создание пользователя 'admin'
 def create_admin_user():
     user = User.query.filter_by(username='adm').first()
     if not user:
-        # Хешируем пароль перед сохранением в базе данных
-        hashed_password = generate_password_hash('12')
+        hashed_password = generate_password_hash('1234')
         new_user = User(username='adm', password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
 
-# Главная страница (с доступом только для авторизованных пользователей)
+# Главная страница
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    products = Product.query.all()  # Получаем все товары
+    products = Product.query.all()
     return render_template('index.html', products=products)
 
 
@@ -107,12 +108,10 @@ def add_product():
 # Вход в систему
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    error = None  # Изначально ошибки нет
-
+    error = None
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
@@ -129,16 +128,36 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login')) # Страница аналитики
+    return redirect(url_for('login'))
+
+
+# Страница аналитики
 @app.route('/analytics')
 @login_required
 def analytics():
-    return render_template('analytics.html')  # Страница аналитики
+    products = Product.query.all()
+    total_quantity = sum(product.quantity for product in products)
+    added_quantity = len(products)
+    return render_template('analytics.html', total_quantity=total_quantity, added_quantity=added_quantity)
+
+
+# Скачивание данных в Excel
+@app.route('/download_excel')
+@login_required
+def download_excel():
+    products = Product.query.all()
+    df = pd.DataFrame([(product.name, product.quantity) for product in products], columns=['Название', 'Количество'])
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name="products.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
 
 # Инициализация базы данных и создание администратора
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
         db.create_all()
-        create_admin_user()  # Создаем администратора при старте приложения
+        create_admin_user()
     app.run(host='0.0.0.0', port=5000)
