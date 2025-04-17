@@ -23,7 +23,7 @@ if not TOKEN or not GROUP_ID:
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'
 app.config['SECRET_KEY'] = 'your-secret-key'
 
 db = SQLAlchemy(app)
