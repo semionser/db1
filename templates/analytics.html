@@ -16,10 +16,6 @@
             border-radius: 10px;
         }
 
-        .btn {
-            width: 100%;
-        }
-
         .info-title {
             font-weight: bold;
             color: #555;
@@ -33,6 +29,63 @@
         .divider {
             border-top: 1px solid #ccc;
             margin: 25px 0;
+        }
+
+        .telegram-icon, .excel-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: text-bottom;
+        }
+
+        .btn-telegram {
+            background-color: #229ED9;
+            color: white;
+        }
+
+        .btn-telegram:hover {
+            background-color: #1b8fcf;
+        }
+
+        .btn-excel {
+            background-color: #217346;
+            color: white;
+        }
+
+        .btn-excel:hover {
+            background-color: #1a5e39;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            height: 50px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 576px) {
+            .action-buttons {
+                flex-direction: row;
+            }
+
+            .action-buttons .btn,
+            .action-buttons form {
+                flex: 1;
+            }
         }
     </style>
 </head>
@@ -56,11 +109,23 @@
     </div>
 
     <div class="card mt-4 p-4 shadow-sm">
-        <a href="{{ url_for('download_excel') }}" class="btn btn-primary">Выгрузить в Excel</a>
+        <div class="section-title">Действия:</div>
+        <div class="action-buttons">
+            <a href="{{ url_for('download_excel') }}" class="btn btn-excel">
+                <img src="https://cdn-icons-png.flaticon.com/512/732/732220.png" alt="Excel" class="excel-icon">
+                Выгрузить в Excel
+            </a>
+            <form method="post" action="{{ url_for('notify_stock') }}">
+                <button type="submit" class="btn btn-telegram w-100">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png" alt="Telegram" class="telegram-icon">
+                    Оповестить об остатках
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="mt-4">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">Выход на склад</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary w-100">Выход на склад</a>
     </div>
 </div>
 
