@@ -9,8 +9,7 @@ from threading import Thread
 import pandas as pd
 import telebot
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from flask import session
+
 
 # === Загрузка переменных окружения ===
 load_dotenv()
@@ -23,7 +22,6 @@ if not TOKEN or not GROUP_ID:
 
 # === Инициализация Flask ===
 app = Flask(__name__)
-# Настройка SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
@@ -105,35 +103,12 @@ def add_product():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
-
-    # Получаем данные о попытках из сессии
-    login_attempts = session.get('login_attempts', 0)
-    lockout_time = session.get('lockout_time')
-
-    # Проверяем, не заблокирован ли вход
-    if lockout_time:
-        if datetime.now() < datetime.fromisoformat(lockout_time):
-            remaining = datetime.fromisoformat(lockout_time) - datetime.now()
-            minutes = int(remaining.total_seconds() // 60) + 1
-            return render_template('login.html', error=f"Слишком много попыток. Повторите через {minutes} мин.")
-        else:
-            session.pop('lockout_time')  # Разблокируем
-            session['login_attempts'] = 0
-
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
-            session['login_attempts'] = 0  # сбрасываем после успешного входа
             return redirect(url_for('index'))
-        else:
-            session['login_attempts'] = login_attempts + 1
-            if session['login_attempts'] >= 3:
-                session['lockout_time'] = (datetime.now() + timedelta(minutes=10)).isoformat()
-                error = "Слишком много неверных попыток. Повторите позже."
-            else:
-                error = f"Неверный логин или пароль. Осталось попыток: {3 - session['login_attempts']}"
-
+        error = 'Неверный логин или пароль'
     return render_template('login.html', error=error)
 
 @app.route('/logout')
