@@ -23,10 +23,10 @@ if not TOKEN or not GROUP_ID:
 
 # === Инициализация Flask ===
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database0.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -210,5 +210,4 @@ if __name__ == '__main__':
         db.create_all()
         create_admin_user()
     Thread(target=run_bot).start()
-    app.run(host='0.0.0.0', port=5001)
-
+    app.run(host='0.0.0.0', port=5000)
