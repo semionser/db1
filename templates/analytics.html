@@ -10,10 +10,48 @@
         body {
             background-color: #f4f4f9;
             font-family: Arial, sans-serif;
+            animation: fadeInBody 1s ease;
+        }
+
+        @keyframes fadeInBody {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        h1 {
+            animation: slideDown 1s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .card {
             border-radius: 10px;
+            animation: fadeUp 0.8s ease both;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .info-title {
@@ -62,6 +100,33 @@
             justify-content: center;
             font-weight: bold;
             height: 50px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%;
+            transition: transform 0.4s ease;
+            pointer-events: none;
+        }
+
+        .btn:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0s;
         }
 
         .section-title {
@@ -97,9 +162,7 @@
         <p class="info-title">Общее количество товара (в штуках):</p>
         <p class="info-value">{{ total_goods_quantity }}</p>
 
-        <div class="divider"></div>
-
-        <p class="info-title">Добавлено товаров (по позициям):</p>
+        <div class="divider"></div><p class="info-title">Добавлено товаров (по позициям):</p>
         <p class="info-value">{{ added_goods_count }}</p>
 
         <div class="divider"></div>
