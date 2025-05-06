@@ -58,11 +58,18 @@ def create_admin_user():
         db.session.commit()
 
 # === Маршруты ===
-@app.route('/')
-@login_required
+@app.route("/", methods=["GET"])
 def index():
-    products = Product.query.all()
-    return render_template('index.html', products=products)
+    search_query = request.args.get('search', '').strip().lower()
+    all_products = Product.query.all()
+
+    if search_query:
+        products = [product for product in all_products if search_query in product.name.lower()]
+    else:
+        products = all_products
+
+    return render_template("index.html", products=products)
+
 
 @app.route('/update/<int:product_id>', methods=['POST'])
 @login_required

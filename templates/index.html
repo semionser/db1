@@ -18,7 +18,7 @@
         }
 
         .top-buttons {
-            margin-bottom: 20px;
+            margin-top: 20px;
             text-align: center;
         }
 
@@ -110,6 +110,55 @@
             margin-top: 10px;
         }
 
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            width: 300px;
+            padding: 10px;
+            border-radius: 25px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .search-container button {
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-top: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-container button:hover {
+            background-color: #45a049;
+        }
+
+        .search-container .btn-secondary {
+            background-color: #E57373;
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-container .btn-secondary:hover {
+            background-color: #EF5350;
+        }
+
+        .top-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .col-md-4 {
                 flex: 0 0 50%;
@@ -118,8 +167,7 @@
         }
 
         @media (max-width: 576px) {
-            .col-md-4 {
-                flex: 0 0 100%;
+            .col-md-4 {flex: 0 0 100%;
                 max-width: 100%;
             }
         }
@@ -139,6 +187,19 @@
             <a href="{{ url_for('logout') }}" class="btn btn-logout">
                 <i class="fas fa-sign-out-alt"></i> Выйти
             </a>
+        </div>
+         <div class="search-container">
+            <form action="/" method="get">
+                <input type="text" name="search" id="searchInput" class="form-control" placeholder="Поиск по названию или количеству..." value="{{ request.args.get('search', '') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Поиск
+                </button>
+                {% if request.args.get('search') %}
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times-circle"></i> Отмена
+                    </a>
+                {% endif %}
+            </form>
         </div>
 
         {% for category, label in [('товар', 'Товары'), ('канцелярия', 'Канцелярия')] %}
