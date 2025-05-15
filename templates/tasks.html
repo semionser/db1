@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Задачи</title>
+    <link rel="icon" href="{{ url_for('static', filename='kit.ico') }}" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+            animation: fadeInBody 1s ease;
+        }
+        @keyframes fadeInBody {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        h1 {
+            animation: slideDown 1s ease-out;
+            color: #333;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            border-radius: 10px;
+            animation: fadeUp 0.8s ease both;
+            transition: box-shadow 0.3s ease;
+            background: white;
+        }
+        .card:hover {
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .overdue {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+        }
+        .almost-overdue {
+            background-color: #fff3cd !important;
+            color: #856404 !important;
+        }
+        .info-title {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            height: 45px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .btn:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0s;
+        }
+        .btn-exit {
+            background-color: #6c757d;
+            color: white;
+            width: 100%;
+            margin-top: 30px;
+        }
+        .btn-exit:hover {
+            background-color: #5a6268;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <h1 class="mb-4 text-center">Задачи</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-info">
+          {% for message in messages %}
+            <div>{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card p-4 mb-4 shadow-sm">
+        <form method="post" action="{{ url_for('tasks') }}">
+            <div class="mb-3">
+                <label for="name" class="form-label info-title">Имя</label>
+                <select class="form-select" id="name" name="name" required>
+                    <option value="" disabled selected>Выберите имя</option>
+                    {% for n in names %}
+                    <option value="{{ n }}">{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label info-title">Задание</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="deadline" class="form-label info-title">Срок (до даты)</label>
+                <input class="form-control" type="date" id="deadline" name="deadline" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Добавить задачу</button>
+
+        </form>
+    </div>
+
+    <div class="card p-4 shadow-sm"><h2 class="section-title mb-3">Список задач</h2>
+<form method="post" action="{{ url_for('notify_tasks') }}" class="mb-3">
+    <button type="submit" class="btn btn-outline-primary w-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-send me-2" viewBox="0 0 16 16">
+          <path d="M15.854.146a.5.5 0 0 1 .11.538l-5 14a.5.5 0 0 1-.948.032L8.21 10.21 1.28 8.09a.5.5 0 0 1-.032-.948l14-5a.5.5 0 0 1 .606.004zM6.489 9.489l1.995 4.59L13.81 2.19 2.19 6.19l4.59 1.995 3.036-3.036a.5.5 0 1 1 .707.707L6.489 9.489z"/>
+        </svg>
+        Отправить задачи в Telegram
+    </button>
+</form>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Имя</th>
+                        <th>Задание</th>
+                        <th>Срок</th>
+                        <th>Осталось дней</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    {% set days_left = (task.deadline - today).days %}
+                    {% set overdue = days_left < 0 %}
+                    {% set almost_overdue = days_left >= 0 and days_left <= 1 %}
+                    <tr class="{% if overdue %}overdue{% elif almost_overdue %}almost-overdue{% endif %}">
+                        <td>{{ task.name }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.deadline.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if overdue %}
+                                Просрочено
+                            {% else %}
+                                {{ days_left }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" onsubmit="return confirm('Удалить задачу?');" class="m-0">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center">Задач пока нет.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Кнопка выйти -->
+    <a href="{{ url_for('index') }}" class="btn btn-exit">Выйти</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -9,6 +9,8 @@ from threading import Thread
 import pandas as pd
 import telebot
 from dotenv import load_dotenv
+from datetime import datetime, date
+
 
 
 # === Загрузка переменных окружения ===
@@ -47,6 +49,14 @@ class Product(db.Model):
     image = db.Column(db.String(100), nullable=True)
     category = db.Column(db.String(100), nullable=False, default='товар')
 
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    deadline = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+#== авторизация
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -57,7 +67,10 @@ def create_admin_user():
         db.session.add(User(username='adm', password=hashed_password))
         db.session.commit()
 
+
 # === Маршруты ===
+
+#== индекс===
 @app.route("/", methods=["GET"])
 def index():
     search_query = request.args.get('search', '').strip().lower()
@@ -71,6 +84,7 @@ def index():
     return render_template("index.html", products=products)
 
 
+#== обновление ===
 @app.route('/update/<int:product_id>', methods=['POST'])
 @login_required
 def update_quantity(product_id):
@@ -81,6 +95,8 @@ def update_quantity(product_id):
         db.session.commit()
     return redirect(url_for('index'))
 
+
+#== удаление ===
 @app.route('/delete/<int:product_id>', methods=['POST'])
 @login_required
 def delete_product(product_id):
@@ -88,6 +104,9 @@ def delete_product(product_id):
     db.session.delete(product)
     db.session.commit()
     return redirect(url_for('index'))
+
+
+#== добавление ===
 
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -107,6 +126,8 @@ def add_product():
         return redirect(url_for('index'))
     return render_template('add_product.html')
 
+#== авторизация===
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -118,11 +139,90 @@ def login():
         error = 'Неверный логин или пароль'
     return render_template('login.html', error=error)
 
+
+#== выход в авторизацию ===
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+#==  Таски ===
+
+NAMES = ['Вася', 'Сема', 'Рома']
+
+@app.route('/tasks', methods=['GET', 'POST'])
+@login_required
+def tasks():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        deadline_str = request.form.get('deadline')
+
+        if not (name and description and deadline_str):
+            flash('Все поля обязательны')
+            return redirect(url_for('tasks'))
+
+        try:
+            deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Некорректный формат даты. Используйте ГГГГ-ММ-ДД.')
+            return redirect(url_for('tasks'))
+
+        new_task = Task(name=name, description=description, deadline=deadline)
+        db.session.add(new_task)
+        db.session.commit()
+        flash('Задача добавлена')
+        return redirect(url_for('tasks'))
+
+    tasks_list = Task.query.order_by(Task.deadline).all()
+    today = date.today()
+    return render_template('tasks.html', tasks=tasks_list, today=today, names=NAMES)
+
+
+@app.route('/tasks/delete/<int:task_id>', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    db.session.delete(task)
+    db.session.commit()
+    flash('Задача удалена')
+    return redirect(url_for('tasks'))
+
+@app.route('/notify_tasks', methods=['POST'])
+@login_required
+def notify_tasks():
+    send_task_info()
+    flash('Задачи отправлены в Telegram-группу!')
+    return redirect(url_for('tasks'))
+
+def send_task_info():
+    with app.app_context():
+        tasks = Task.query.order_by(Task.deadline).all()
+        today = date.today()
+        if not tasks:
+            bot.send_message(chat_id=GROUP_ID, text="Список задач пуст.")
+            return
+
+        msg = "📋 *Список задач:*\n\n"
+        for task in tasks:
+            days_left = (task.deadline - today).days
+            if days_left < 0:
+                status = "⛔️ *ПРОСРОЧЕНО*"
+            elif days_left == 0:
+                status = "⚠️ *Сегодня*"
+            elif days_left <= 1:
+                status = f"❗️ *{days_left} день остался*"
+            else:
+                status = f"⏳ {days_left} дн."
+
+            msg += f"*{task.name}* — {task.description}\nДо {task.deadline.strftime('%Y-%m-%d')} ({status})\n\n"
+
+        bot.send_message(chat_id=GROUP_ID, text=msg, parse_mode='Markdown')
+
+
+#== аналитика ===
 
 @app.route('/analytics')
 @login_required
@@ -136,6 +236,8 @@ def analytics():
                            added_goods_count=added_goods_count,
                            added_stationery_count=added_stationery_count)
 
+
+#== экслеь кнопка ===
 @app.route('/download_excel')
 @login_required
 def download_excel():
@@ -157,6 +259,8 @@ def download_excel():
     return send_file(output, as_attachment=True, download_name="products.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
+
+#== телеграм кнопка ===
 @app.route('/notify_stock', methods=['POST'])
 @login_required
 def notify_stock():
@@ -164,7 +268,7 @@ def notify_stock():
     flash('Оповещение отправлено в Telegram-группу!')
     return redirect(url_for('analytics'))
 
-# === Отправка остатков ===
+# === Отправка остатков телеграм  ===
 def send_stock_info():
     with app.app_context():
         products = Product.query.all()
