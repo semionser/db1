@@ -9,9 +9,9 @@ from threading import Thread
 import pandas as pd
 import telebot
 from dotenv import load_dotenv
-from datetime import datetime, date
-
-
+from datetime import datetime, date, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 
 # === Загрузка переменных окружения ===
 load_dotenv()
@@ -29,6 +29,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
 
+
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -37,11 +38,14 @@ login_manager.login_view = 'login'
 bot = telebot.TeleBot(TOKEN)
 
 # === Модели ===
+
+#== бд входа ===
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
 
+#== бд продуктов ===
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -49,6 +53,7 @@ class Product(db.Model):
     image = db.Column(db.String(100), nullable=True)
     category = db.Column(db.String(100), nullable=False, default='товар')
 
+#== бд тасков ===
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
@@ -61,6 +66,7 @@ class Task(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+#== добавление пароля в бд ==
 def create_admin_user():
     if not User.query.filter_by(username='adm').first():
         hashed_password = generate_password_hash('1234')
@@ -84,7 +90,7 @@ def index():
     return render_template("index.html", products=products)
 
 
-#== обновление ===
+#== обновление продуктов ===
 @app.route('/update/<int:product_id>', methods=['POST'])
 @login_required
 def update_quantity(product_id):
@@ -96,7 +102,7 @@ def update_quantity(product_id):
     return redirect(url_for('index'))
 
 
-#== удаление ===
+#== удаление продуктов ===
 @app.route('/delete/<int:product_id>', methods=['POST'])
 @login_required
 def delete_product(product_id):
@@ -106,8 +112,7 @@ def delete_product(product_id):
     return redirect(url_for('index'))
 
 
-#== добавление ===
-
+#== добавление продуктов ===
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_product():
@@ -126,8 +131,8 @@ def add_product():
         return redirect(url_for('index'))
     return render_template('add_product.html')
 
-#== авторизация===
 
+#== авторизация===
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -140,16 +145,16 @@ def login():
     return render_template('login.html', error=error)
 
 
-#== выход в авторизацию ===
 
+#== выход в авторизацию ===
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
-#==  Таски ===
 
+#==  Таски ===
 NAMES = ['Вася', 'Сема', 'Рома']
 
 @app.route('/tasks', methods=['GET', 'POST'])
@@ -178,7 +183,14 @@ def tasks():
 
     tasks_list = Task.query.order_by(Task.deadline).all()
     today = date.today()
-    return render_template('tasks.html', tasks=tasks_list, today=today, names=NAMES)
+
+    now = datetime.now()
+    next_send_time = datetime.combine(now.date(), datetime.strptime("10:00", "%H:%M").time())
+    if now > next_send_time:
+        next_send_time += timedelta(days=1)
+    hours_until_send = (next_send_time - now).seconds // 3600
+
+    return render_template('tasks.html', tasks=tasks_list, today=today, names=NAMES, hours_until_send=hours_until_send)
 
 
 @app.route('/tasks/delete/<int:task_id>', methods=['POST'])
@@ -190,12 +202,14 @@ def delete_task(task_id):
     flash('Задача удалена')
     return redirect(url_for('tasks'))
 
+
 @app.route('/notify_tasks', methods=['POST'])
 @login_required
 def notify_tasks():
     send_task_info()
     flash('Задачи отправлены в Telegram-группу!')
     return redirect(url_for('tasks'))
+
 
 def send_task_info():
     with app.app_context():
@@ -212,7 +226,7 @@ def send_task_info():
                 status = "⛔️ *ПРОСРОЧЕНО*"
             elif days_left == 0:
                 status = "⚠️ *Сегодня*"
-            elif days_left <= 1:
+            elif days_left == 1:
                 status = f"❗️ *{days_left} день остался*"
             else:
                 status = f"⏳ {days_left} дн."
@@ -222,8 +236,15 @@ def send_task_info():
         bot.send_message(chat_id=GROUP_ID, text=msg, parse_mode='Markdown')
 
 
-#== аналитика ===
+# === Планировщик отправки в 11:00 ===
+scheduler = BackgroundScheduler(timezone=timezone('Europe/Moscow'))
 
+@scheduler.scheduled_job('cron', hour=10, minute=0)
+def scheduled_task_sender():
+    with app.app_context():
+        send_task_info()
+
+#== аналитика ===
 @app.route('/analytics')
 @login_required
 def analytics():
@@ -268,6 +289,7 @@ def notify_stock():
     flash('Оповещение отправлено в Telegram-группу!')
     return redirect(url_for('analytics'))
 
+
 # === Отправка остатков телеграм  ===
 def send_stock_info():
     with app.app_context():
@@ -287,10 +309,12 @@ def handle_stock_command(message):
     if message.chat.id == GROUP_ID:
         send_stock_info()
 
+
 # === Запуск бота и сервера ===
 def run_bot():
     bot.polling(none_stop=True)
 
+scheduler.start()
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
