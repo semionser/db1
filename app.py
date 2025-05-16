@@ -9,10 +9,9 @@ from threading import Thread
 import pandas as pd
 import telebot
 from dotenv import load_dotenv
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta, date, time as dt_time
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
-
 # === Загрузка переменных окружения ===
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -28,7 +27,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Исполь�
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = '/var/www/db1/static/uploads'  # Полный путь для загрузки
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Замените на свой секретный ключ
-
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -156,7 +154,6 @@ def logout():
 
 #==  Таски ===
 NAMES = ['Вася', 'Сема', 'Рома']
-
 @app.route('/tasks', methods=['GET', 'POST'])
 @login_required
 def tasks():
@@ -184,13 +181,30 @@ def tasks():
     tasks_list = Task.query.order_by(Task.deadline).all()
     today = date.today()
 
-    now = datetime.now()
-    next_send_time = datetime.combine(now.date(), datetime.strptime("10:00", "%H:%M").time())
-    if now > next_send_time:
-        next_send_time += timedelta(days=1)
-    hours_until_send = (next_send_time - now).seconds // 3600
+    moscow_tz = timezone('Europe/Moscow')
+    now = datetime.now(moscow_tz)
+    target_time = moscow_tz.localize(datetime.combine(now.date(), dt_time(hour=9, minute=45)))
 
-    return render_template('tasks.html', tasks=tasks_list, today=today, names=NAMES, hours_until_send=hours_until_send)
+    if now > target_time:
+        target_time += timedelta(days=1)
+
+    delta = target_time - now
+    hours = delta.seconds // 3600
+    minutes = (delta.seconds % 3600) // 60
+
+    if delta.days > 0:
+        hours += delta.days * 24
+
+    if hours == 0 and minutes < 1:
+        time_left_str = "меньше минуты"
+    elif hours == 0:
+        time_left_str = f"{minutes} мин"
+    elif minutes == 0:
+        time_left_str = f"{hours} ч."
+    else:
+        time_left_str = f"{hours} ч. {minutes} мин"
+
+    return render_template('tasks.html', tasks=tasks_list, today=today, names=NAMES, time_left_str=time_left_str)
 
 
 @app.route('/tasks/delete/<int:task_id>', methods=['POST'])
@@ -237,9 +251,9 @@ def send_task_info():
 
 
 # === Планировщик отправки в 11:00 ===
-scheduler = BackgroundScheduler(timezone=timezone('Europe/Moscow'))
+scheduler = BackgroundScheduler(timezone='Europe/Moscow')
 
-@scheduler.scheduled_job('cron', hour=10, minute=0)
+@scheduler.scheduled_job('cron', hour=9, minute=45)
 def scheduled_task_sender():
     with app.app_context():
         send_task_info()
