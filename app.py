@@ -250,7 +250,7 @@ def send_task_info():
         bot.send_message(chat_id=GROUP_ID, text=msg, parse_mode='Markdown')
 
 
-# === Планировщик отправки в 11:00 ===
+# === Планировщик отправки в 9:45 ===
 scheduler = BackgroundScheduler(timezone='Europe/Moscow')
 
 @scheduler.scheduled_job('cron', hour=9, minute=45)
@@ -328,11 +328,12 @@ def handle_stock_command(message):
 def run_bot():
     bot.polling(none_stop=True)
 
-scheduler.start()
+
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.app_context():
         db.create_all()
         create_admin_user()
+    scheduler.start()
     Thread(target=run_bot).start()
     app.run(host='0.0.0.0', port=5000)
