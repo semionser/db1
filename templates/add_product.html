@@ -43,12 +43,22 @@
         .btn-cancel:hover {
             background-color: #868e96;
         }
+
+        .alert-danger {
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="form-container">
         <h2 class="text-center mb-4">Добавление товара</h2>
+
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
 
         <form method="POST" enctype="multipart/form-data">
             <div class="mb-3">
@@ -73,7 +83,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Фото</label>
-                <input type="file" name="image" class="form-control-file">
+                <input type="file" name="image" class="form-control-file" required>
             </div>
 
             <div class="d-grid gap-2">
