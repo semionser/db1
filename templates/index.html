@@ -11,6 +11,7 @@
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
+            color: #000;
         }
 
         .container {
@@ -153,10 +154,6 @@
             transition: all 0.3s ease;
         }
 
-        .search-container button:hover {
-            background-color: #45a049;
-        }
-
         .search-container .btn-secondary {
             background-color: #E57373;
             color: white;
@@ -164,8 +161,91 @@
             transition: all 0.3s ease;
         }
 
+        .search-container button:hover {background-color: #45a049;
+        }
+
         .search-container .btn-secondary:hover {
             background-color: #EF5350;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            background-color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-toggle i {
+            font-size: 1.5rem;
+            color: #f39c12;
+            transition: transform 0.4s ease, color 0.4s ease;
+        }
+
+        .dark-theme {
+            background-color: #1e1e1e;
+            color: #ddd;
+        }
+
+        .dark-theme .product-card {
+            background-color: #2e2e2e;
+            border-color: #444;
+        }
+
+        .dark-theme .product-name,
+        .dark-theme .product-quantity,
+        .dark-theme .product-ozon,
+        .dark-theme .category-title,
+        .dark-theme h1 {
+            color: #fff;
+        }
+
+        .dark-theme .main-menu {
+            background-color: #2e2e2e;
+        }
+
+        .dark-theme .menu-item {
+            color: #ccc;
+        }
+
+        .dark-theme .menu-item i {
+            color: #90caf9;
+        }
+
+        .dark-theme .menu-item:hover {
+            background-color: #3a3a3a;
+        }
+
+        .dark-theme .search-container input {
+            background-color: #333;
+            color: #fff;
+            border-color: #555;
+        }
+
+        .dark-theme .btn-primary {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+        }
+
+        .dark-theme .btn-danger {
+            background-color: #e53935;
+            color: white;
+            border: none;
+        }
+
+        .dark-theme .search-container .btn-secondary {
+            background-color: #e57373;
         }
 
         @media (max-width: 768px) {
@@ -184,10 +264,13 @@
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-sun"></i>
+    </button>
+
     <div class="container">
         <h1 class="text-center mb-3">Товары на складе</h1>
 
-        <!-- Крутое меню -->
         <nav class="main-menu">
             <a href="{{ url_for('add_product') }}" class="menu-item">
                 <i class="fas fa-plus-circle"></i>
@@ -207,7 +290,6 @@
             </a>
         </nav>
 
-        <!-- Поиск -->
         <div class="search-container">
             <form action="/" method="get">
                 <input type="text" name="search" id="searchInput" class="form-control" placeholder="Поиск по названию или количеству..." value="{{ request.args.get('search', '') }}">
@@ -220,10 +302,7 @@
                     </a>
                 {% endif %}
             </form>
-        </div>
-
-        <!-- Список товаров по категориям -->
-        {% for category, label in [('товар', 'Товары'), ('канцелярия', 'Канцелярия')] %}
+        </div>{% for category, label in [('товар', 'Товары'), ('канцелярия', 'Канцелярия')] %}
             <div class="divider"></div>
             <div class="category-title">{{ label }}</div>
             <div class="row d-flex flex-wrap">
@@ -243,7 +322,6 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary">Обновить количество</button>
                                 </form>
-
                                 <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST">
                                     <button type="submit" class="btn btn-danger">Удалить товар</button>
                                 </form>
@@ -255,7 +333,33 @@
         {% endfor %}
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const toggleButton = document.getElementById('themeToggle');
+        const icon = toggleButton.querySelector('i');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                icon.style.color = '#f1c40f';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-theme');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                icon.style.color = '#f39c12';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        setTheme(savedTheme === 'dark');
+
+        toggleButton.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains('dark-theme');
+            setTheme(isDark);
+        });
+    </script>
 </body>
 </html>
