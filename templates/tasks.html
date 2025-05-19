@@ -170,43 +170,58 @@
         {% if tasks %}
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Задание</th>
-                        <th>Срок</th>
-                        <th>Штраф</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for task in tasks %}
-                    {% set days_left = (task.deadline - today).days %}
-                    {% set fine = (-days_left) * 500 if days_left < 0 else 0 %}
-                    {% set is_due_today = days_left == 0 %}
-                    {% set is_due_tomorrow = days_left == 1 %}
-                    {% set is_overdue = days_left < 0 %}
-                    <tr class="{% if is_overdue or is_due_today %}overdue{% elif is_due_tomorrow %}almost-overdue{% endif %}">
-                        <td>{{ task.name }}</td>
-                        <td>{{ task.description }}</td>
-                        <td class="deadline-cell {% if is_overdue or is_due_today %}overdue{% elif is_due_tomorrow %}almost-overdue{% endif %}">
-                            {{ task.deadline.strftime('%Y-%m-%d') }}
-                        </td>
-                        <td>
-                            {% if fine > 0 %}
-                                {{ fine }} ₽
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td>
-                            <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
+                            <!-- внутри <thead> -->
+            <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Задание</th>
+                    <th>Срок</th>
+                    <th>Осталось</th> <!-- Добавлено -->
+                    <th>Штраф</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+
+            <!-- внутри <tbody> -->
+            <tbody>
+            {% for task in tasks %}
+                {% set days_left = (task.deadline - today).days %}
+                {% set fine = (-days_left) * 500 if days_left < 0 else 0 %}
+                {% set is_due_today = days_left == 0 %}
+                {% set is_due_tomorrow = days_left == 1 %}
+                {% set is_overdue = days_left < 0 %}
+                <tr class="{% if is_overdue or is_due_today %}overdue{% elif is_due_tomorrow %}almost-overdue{% endif %}">
+                    <td>{{ task.name }}</td>
+                    <td>{{ task.description }}</td>
+                    <td class="deadline-cell {% if is_overdue or is_due_today %}overdue{% elif is_due_tomorrow %}almost-overdue{% endif %}">
+                        {{ task.deadline.strftime('%Y-%m-%d') }}
+                    </td>
+                    <td>
+                        {% if days_left > 1 %}
+                            Осталось {{ days_left }} дн.
+                        {% elif days_left == 1 %}
+                            Завтра
+                        {% elif days_left == 0 %}
+                            Сегодня
+                        {% else %}
+                            Просрочено {{ -days_left }} дн.
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if fine > 0 %}
+                            {{ fine }} ₽
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
             </table>
         </div>
         {% else %}
