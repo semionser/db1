@@ -59,6 +59,22 @@ class Task(db.Model):
     deadline = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+#== бд поставок ===
+
+class Supply(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_date = db.Column(db.Date, nullable=False)
+    arrival_date = db.Column(db.Date)
+    total_price = db.Column(db.Float)
+    items = db.relationship('SupplyItem', backref='supply', cascade="all, delete-orphan")
+
+class SupplyItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    supply_id = db.Column(db.Integer, db.ForeignKey('supply.id'))
+    name = db.Column(db.String(100))
+    quantity = db.Column(db.Integer)
+    price = db.Column(db.Float)
+
 #== авторизация
 @login_manager.user_loader
 def load_user(user_id):
@@ -156,6 +172,87 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+
+#==  Поставки  ===
+@app.route('/supplies', methods=['GET', 'POST'])
+def supplies():
+    if request.method == 'POST':
+        order_date = request.form.get('order_date')
+        arrival_date = request.form.get('arrival_date')
+        total_price = request.form.get('total_price')
+        item_names = request.form.getlist('item_name[]')
+        quantities = request.form.getlist('item_quantity[]')
+        prices = request.form.getlist('item_price[]')
+
+        new_supply = Supply(
+            order_date=datetime.strptime(order_date, '%Y-%m-%d'),
+            arrival_date=datetime.strptime(arrival_date, '%Y-%m-%d') if arrival_date else None,
+            total_price=float(total_price) if total_price else 0
+        )
+        db.session.add(new_supply)
+        db.session.commit()
+
+        for name, qty, price in zip(item_names, quantities, prices):
+            if name.strip() == '':
+                continue
+            item = SupplyItem(
+                supply_id=new_supply.id,
+                name=name,
+                quantity=int(qty),
+                price=float(price)
+            )
+            db.session.add(item)
+        db.session.commit()
+        flash("Поставка успешно добавлена")
+        return redirect(url_for('supplies'))
+
+    supplies = Supply.query.order_by(Supply.order_date.desc()).all()
+    return render_template('supplies.html', supplies=supplies)
+
+@app.route('/delete_supply/<int:supply_id>', methods=['POST'])
+def delete_supply(supply_id):
+    supply = Supply.query.get_or_404(supply_id)
+    db.session.delete(supply)
+    db.session.commit()
+    flash("Поставка удалена")
+    return redirect(url_for('supplies'))
+
+@app.route('/edit_supply/<int:supply_id>', methods=['GET', 'POST'])
+def edit_supply(supply_id):
+    supply = Supply.query.get_or_404(supply_id)
+
+    if request.method == 'POST':
+        supply.order_date = datetime.strptime(request.form['order_date'], '%Y-%m-%d').date()
+        arrival_date_str = request.form.get('arrival_date', '').strip()
+        supply.arrival_date = datetime.strptime(arrival_date_str, '%Y-%m-%d').date() if arrival_date_str else None
+
+        total_price_str = request.form.get('total_price', '').strip()
+        supply.total_price = float(total_price_str) if total_price_str else 0.0
+
+        # Обновляем товары:
+        supply.items.clear()
+        names = request.form.getlist('item_name[]')
+        quantities = request.form.getlist('item_quantity[]')
+        prices = request.form.getlist('item_price[]')
+
+        for name, qty, price in zip(names, quantities, prices):
+            if not name.strip() or not qty.strip() or not price.strip():
+                continue
+
+            item = SupplyItem(
+                name=name.strip(),
+                quantity=int(qty),
+                price=float(price),
+                supply=supply
+            )
+            db.session.add(item)
+
+        db.session.commit()
+        flash('Поставка успешно обновлена')
+        return redirect(url_for('edit_supply', supply_id=supply.id))
+
+    return render_template('edit_supply.html', supply=supply)
 
 
 #==  Таски ===

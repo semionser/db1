@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Редактировать поставку</title>
+    <link rel="icon" href="{{ url_for('static', filename='kit.ico') }}" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+            animation: fadeInBody 1s ease;
+        }
+        @keyframes fadeInBody {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        h1 {
+            animation: slideDown 1s ease-out;
+            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            border-radius: 10px;
+            animation: fadeUp 0.8s ease both;
+            transition: box-shadow 0.3s ease;
+            background: white;
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 2rem;
+        }
+        .card:hover {
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            height: 45px;
+        }
+        .btn-danger {
+            font-weight: 600;
+            padding: 6px 14px;
+        }
+        .remove-item-btn {
+            margin-top: 4px;
+        }
+        .item-row > div {
+            margin-bottom: 0.5rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <h1>Редактировать поставку</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-info">
+          {% for message in messages %}
+            <div>{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+
+        <form method="post" action="{{ url_for('edit_supply', supply_id=supply.id) }}">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="form-label" for="order_date">Дата заказа</label>
+                    <input type="date" id="order_date" name="order_date" class="form-control" required
+                           value="{{ supply.order_date.strftime('%Y-%m-%d') if supply.order_date else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="arrival_date">Дата прибытия</label>
+                    <input type="date" id="arrival_date" name="arrival_date" class="form-control"
+                           value="{{ supply.arrival_date.strftime('%Y-%m-%d') if supply.arrival_date else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="total_price">Общая сумма</label>
+                    <input type="number" id="total_price" name="total_price" class="form-control" step="0.01"
+                           value="{{ supply.total_price if supply.total_price else '' }}">
+                </div>
+            </div>
+
+            <div id="items-container">
+                {% for item in supply.items %}
+                    <div class="row mb-3 align-items-center item-row">
+                        <div class="col-md-5">
+                            <input type="text" name="item_name[]" class="form-control" placeholder="Название товара" required
+                                   value="{{ item.name }}">
+                        </div>
+                        <div class="col-md-3"><input type="number" name="item_quantity[]" class="form-control" placeholder="Кол-во" required
+                                   value="{{ item.quantity }}">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" step="0.01" name="item_price[]" class="form-control" placeholder="Цена за шт." required
+                                   value="{{ '%.2f'|format(item.price) }}">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-item-btn" onclick="removeItem(this)">×</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-outline-secondary mb-4" onclick="addItem()">+ Добавить товар</button>
+            <button type="submit" class="btn btn-primary w-100">Сохранить изменения</button>
+        </form>
+    </div>
+
+    <form method="get" action="{{ url_for('supplies') }}">
+        <button type="submit" class="btn btn-secondary w-100 mt-3">Назад к списку поставок</button>
+    </form>
+
+</div>
+
+<script>
+    function addItem() {
+        const container = document.getElementById('items-container');
+        const row = document.createElement('div');
+        row.className = 'row mb-3 align-items-center item-row';
+        row.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" name="item_name[]" class="form-control" placeholder="Название товара" required>
+            </div>
+            <div class="col-md-3">
+                <input type="number" name="item_quantity[]" class="form-control" placeholder="Кол-во" required>
+            </div>
+            <div class="col-md-3">
+                <input type="number" step="0.01" name="item_price[]" class="form-control" placeholder="Цена за шт." required>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger remove-item-btn" onclick="removeItem(this)">×</button>
+            </div>`;
+        container.appendChild(row);
+    }
+
+    function removeItem(button) {
+        const row = button.closest('.item-row');
+        if (row) {
+            row.remove();
+        }
+    }
+</script>
+
+</body>
+</html>
