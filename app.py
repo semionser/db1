@@ -12,7 +12,9 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, date, time as dt_time
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
-# === Загрузка переменных окружения ===
+
+
+
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_ID = int(os.getenv("TELEGRAM_GROUP_ID"))
